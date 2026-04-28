@@ -18,7 +18,7 @@ namespace ycsbc {
 
 class Client {
  public:
-  Client(DB &db, CoreWorkload &wl) : db_(db), workload_(wl) { }
+  Client(DB &db, CoreWorkload &wl, uint64_t id) : db_(db), workload_(wl), txn_id(id) { }
   
   virtual bool DoInsert();
   virtual bool DoTransaction();
@@ -35,6 +35,7 @@ class Client {
   
   DB &db_;
   CoreWorkload &workload_;
+  uint64_t txn_id;
 };
 
 inline bool Client::DoInsert() {
@@ -71,7 +72,7 @@ inline bool Client::DoTransaction() {
 
 inline int Client::TransactionRead() {
   const std::string &table = workload_.NextTable();
-  const std::string &key = workload_.NextTransactionKey();
+  const std::string &key = workload_.NextTransactionKey(txn_id);
   std::vector<DB::KVPair> result;
   if (!workload_.read_all_fields()) {
     std::vector<std::string> fields;
@@ -84,7 +85,7 @@ inline int Client::TransactionRead() {
 
 inline int Client::TransactionReadModifyWrite() {
   const std::string &table = workload_.NextTable();
-  const std::string &key = workload_.NextTransactionKey();
+  const std::string &key = workload_.NextTransactionKey(txn_id);
   std::vector<DB::KVPair> result;
 
   if (!workload_.read_all_fields()) {
@@ -106,7 +107,7 @@ inline int Client::TransactionReadModifyWrite() {
 
 inline int Client::TransactionScan() {
   const std::string &table = workload_.NextTable();
-  const std::string &key = workload_.NextTransactionKey();
+  const std::string &key = workload_.NextTransactionKey(txn_id);
   int len = workload_.NextScanLength();
   std::vector<std::vector<DB::KVPair>> result;
   if (!workload_.read_all_fields()) {
@@ -120,7 +121,7 @@ inline int Client::TransactionScan() {
 
 inline int Client::TransactionUpdate() {
   const std::string &table = workload_.NextTable();
-  const std::string &key = workload_.NextTransactionKey();
+  const std::string &key = workload_.NextTransactionKey(txn_id);
   std::vector<DB::KVPair> values;
   if (workload_.write_all_fields()) {
     workload_.BuildValues(values);
