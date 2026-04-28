@@ -5,6 +5,8 @@
 //  Created by Jinglei Ren on 12/9/14.
 //  Copyright (c) 2014 Jinglei Ren <jinglei@ren.systems>.
 //
+// adapted for the LakeVilla Prototype by Tobias Götz
+
 
 #ifndef YCSB_C_CORE_WORKLOAD_H_
 #define YCSB_C_CORE_WORKLOAD_H_
@@ -140,6 +142,18 @@ class CoreWorkload {
   static const std::string RECORD_COUNT_PROPERTY;
   static const std::string OPERATION_COUNT_PROPERTY;
 
+
+  /// 
+  /// The number of how many keys should be exclusive per thread for the Interval Generator
+  ///
+
+  static const std::string INTERVAL_GENERATOR_EXCLUSIVE_PROPERTY;
+  static const std::string INTERVAL_GENERATOR_EXCLUSIVE_DEFAULT;
+
+
+  static const std::string INTERVAL_GENERATOR_NUMINTERVAL_PROPERTY;
+  static const std::string INTERVAL_GENERATOR_NUMINTERVAL_DEFAULT;
+
   ///
   /// Initialize the scenario.
   /// Called once, in the main client thread, before any operations are started.
@@ -151,7 +165,7 @@ class CoreWorkload {
   
   virtual std::string NextTable() { return table_name_; }
   virtual std::string NextSequenceKey(); /// Used for loading data
-  virtual std::string NextTransactionKey(); /// Used for transactions
+  virtual std::string NextTransactionKey(uint64_t txn_id); /// Used for transactions
   virtual Operation NextOperation() { return op_chooser_.Next(); }
   virtual std::string NextFieldName();
   virtual size_t NextScanLength() { return scan_len_chooser_->Next(); }
@@ -199,10 +213,10 @@ inline std::string CoreWorkload::NextSequenceKey() {
   return BuildKeyName(key_num);
 }
 
-inline std::string CoreWorkload::NextTransactionKey() {
+inline std::string CoreWorkload::NextTransactionKey(uint64_t txn_id) {
   uint64_t key_num;
   do {
-    key_num = key_chooser_->Next();
+    key_num = key_chooser_->Next(txn_id);
   } while (key_num > insert_key_sequence_.Last());
   return BuildKeyName(key_num);
 }

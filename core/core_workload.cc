@@ -11,6 +11,7 @@
 #include "scrambled_zipfian_generator.h"
 #include "skewed_latest_generator.h"
 #include "const_generator.h"
+#include "interval_generator.h"
 #include "core_workload.h"
 
 #include <string>
@@ -76,6 +77,12 @@ const string CoreWorkload::INSERT_START_DEFAULT = "0";
 const string CoreWorkload::RECORD_COUNT_PROPERTY = "recordcount";
 const string CoreWorkload::OPERATION_COUNT_PROPERTY = "operationcount";
 
+const string CoreWorkload::INTERVAL_GENERATOR_EXCLUSIVE_PROPERTY = "intervalexclusive";
+const string CoreWorkload::INTERVAL_GENERATOR_EXCLUSIVE_DEFAULT = "0";
+
+const string CoreWorkload::INTERVAL_GENERATOR_NUMINTERVAL_PROPERTY = "intervalcount";
+const string CoreWorkload::INTERVAL_GENERATOR_NUMINTERVAL_DEFAULT = "1";
+
 void CoreWorkload::Init(const utils::Properties &p) {
   table_name_ = p.GetProperty(TABLENAME_PROPERTY,TABLENAME_DEFAULT);
   
@@ -109,8 +116,14 @@ void CoreWorkload::Init(const utils::Properties &p) {
                                                     READ_ALL_FIELDS_DEFAULT));
   write_all_fields_ = utils::StrToBool(p.GetProperty(WRITE_ALL_FIELDS_PROPERTY,
                                                      WRITE_ALL_FIELDS_DEFAULT));
+
+  int interval_exclusive = std::stoi(p.GetProperty(INTERVAL_GENERATOR_EXCLUSIVE_PROPERTY,
+                                             INTERVAL_GENERATOR_EXCLUSIVE_DEFAULT));
+                                
+  int interval_count = std::stoi(p.GetProperty(INTERVAL_GENERATOR_NUMINTERVAL_PROPERTY,
+                                             INTERVAL_GENERATOR_NUMINTERVAL_DEFAULT));
   
-  if (p.GetProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_DEFAULT) == "hashed") {
+  if (p.GetProperty(INTERVAL_GENERATOR_EXCLUSIVE_PROPERTY, INSERT_ORDER_DEFAULT) == "hashed") {
     ordered_inserts_ = false;
   } else {
     ordered_inserts_ = true;
@@ -152,7 +165,12 @@ void CoreWorkload::Init(const utils::Properties &p) {
   } else if (request_dist == "latest") {
     key_chooser_ = new SkewedLatestGenerator(insert_key_sequence_);
     
-  } else {
+  } else if (request_dist == "interval") {
+    uint64_t l = interval_count == 0? 1 : record_count_ / (1 + ((interval_count - 1) * (1 - (interval_exclusive/100))));
+    uint64_t s = l - (l * (1 - (interval_exclusive/100)));
+
+    key_chooser_ = new IntervalGenerator(s,l, record_count_);
+  } else{
     throw utils::Exception("Unknown request distribution: " + request_dist);
   }
   
