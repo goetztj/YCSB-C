@@ -17,5 +17,10 @@ updateproportion=0.5
 scanproportion=0
 insertproportion=0
 
-requestdistribution=zipfian
+requestdistribution=interval
 
+# number of unique intervals to be generated
+intervalcount=32
+
+# % of how much if each interval should overlap
+intervalexclusive=0
